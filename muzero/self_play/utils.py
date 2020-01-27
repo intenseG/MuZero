@@ -53,7 +53,20 @@ class Node(object):
 
 
 def softmax_sample(visit_counts, actions, t):
+    # print(f'[utils] Actions type: {type(actions)}')
+    # print(f'[utils] Actions length: {len(actions)}')
+    # action_list = [a.index for a in actions]
+    # c = np.max(action_list)
+    # exp_array = np.exp(action_list - c)
+    # sum_exp_array = np.sum(exp_array)
+    # y = exp_array / sum_exp_array
+    # print(f'y: {y}')
     counts_exp = np.exp(visit_counts) * (1 / t)
     probs = counts_exp / np.sum(counts_exp, axis=0)
+    # if np.isnan(probs):
+    # print(f'visit_counts: {visit_counts}')
+    # print(f'counts_exp: {counts_exp}')
+    # print(f'np.sum(counts_exp, axis=0): {np.sum(counts_exp, axis=0)}')
+    # print(f'probs: {probs}')
     action_idx = np.random.choice(len(actions), p=probs)
     return actions[action_idx]

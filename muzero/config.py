@@ -3,9 +3,11 @@ from typing import Optional, Dict
 
 import tensorflow_core as tf
 
-from game.cartpole import CartPole
+# from game.cartpole import CartPole
+from game.gogame import GoGame
 from game.game import AbstractGame
-from networks.cartpole_network import CartPoleNetwork
+# from networks.cartpole_network import CartPoleNetwork
+from networks.gogame_network import GoGameNetwork
 from networks.network import BaseNetwork, UniformNetwork
 
 KnownBounds = collections.namedtuple('KnownBounds', ['min', 'max'])
@@ -15,12 +17,15 @@ class MuZeroConfig(object):
 
     def __init__(self,
                  game,
+                 size: int,
+                 reward_method,
                  nb_training_loop: int,
                  nb_episodes: int,
                  nb_epochs: int,
                  network_args: Dict,
                  network,
                  action_space_size: int,
+                 num_actors: int,
                  max_moves: int,
                  discount: float,
                  dirichlet_alpha: float,
@@ -29,13 +34,19 @@ class MuZeroConfig(object):
                  td_steps: int,
                  visit_softmax_temperature_fn,
                  lr: float,
-                 known_bounds: Optional[KnownBounds] = None):
+                #  lr_init: float,
+                #  lr_decay_steps: int,
+                 known_bounds: Optional[KnownBounds] = None,
+                 debug = False):
         ### Environment
         self.game = game
+        self.size = size
+        self.reward_method = reward_method
+        self.debug = debug
 
         ### Self-Play
         self.action_space_size = action_space_size
-        # self.num_actors = num_actors
+        self.num_actors = num_actors
 
         self.visit_softmax_temperature_fn = visit_softmax_temperature_fn
         self.max_moves = max_moves
@@ -80,7 +91,7 @@ class MuZeroConfig(object):
         # self.lr_decay_steps = lr_decay_steps
 
     def new_game(self) -> AbstractGame:
-        return self.game(self.discount)
+        return self.game(self.discount, self.size, self.reward_method)
 
     def new_network(self) -> BaseNetwork:
         return self.network(**self.network_args)
@@ -115,6 +126,53 @@ def make_cartpole_config() -> MuZeroConfig:
         td_steps=10,
         visit_softmax_temperature_fn=visit_softmax_temperature,
         lr=0.05)
+
+
+def make_board_game_config(game, network, size, reward_method,
+                           action_space_size: int, max_moves: int,
+                           dirichlet_alpha: float,
+                           lr_init: float) -> MuZeroConfig:
+    def visit_softmax_temperature(num_moves, training_steps):
+        if num_moves < 30:
+            return 1.0
+        elif num_moves < 100:
+            return 0.5
+        else:
+            return 0.25  # Play according to the max.
+
+    return MuZeroConfig(
+        game=GoGame,
+        network=GoGameNetwork,
+        size=size,
+        reward_method=reward_method,
+        nb_training_loop=50,
+        nb_episodes=5,
+        nb_epochs=20,
+        network_args={'action_size': action_space_size,
+                      'state_size': max_moves,
+                      'representation_size': max_moves,
+                      'max_value': 500},
+        action_space_size=action_space_size,
+        max_moves=max_moves,
+        discount=1.0,
+        dirichlet_alpha=dirichlet_alpha,
+        num_simulations=50,
+        batch_size=2048,
+        td_steps=max_moves,  # Always use Monte Carlo return.
+        num_actors=3000,
+        lr=0.01,
+        # lr_init=lr_init,
+        # lr_decay_steps=400e3,
+        visit_softmax_temperature_fn=visit_softmax_temperature,
+        known_bounds=KnownBounds(-1, 1),
+        debug=True)
+
+
+def make_go_config() -> MuZeroConfig:
+    return make_board_game_config(game=GoGame, network=GoGameNetwork,
+        size=9, reward_method='real',
+        action_space_size=82, max_moves=162,
+        dirichlet_alpha=0.03, lr_init=0.01)
 
 
 """

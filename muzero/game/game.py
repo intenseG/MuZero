@@ -11,13 +11,13 @@ class Action(object):
         self.index = index
 
     def __hash__(self):
-        return self.index
+        return int(self.index)
 
     def __eq__(self, other):
-        return self.index == other.index
+        return int(self.index) == int(other.index)
 
     def __gt__(self, other):
-        return self.index > other.index
+        return int(self.index) > int(other.index)
 
 
 class Player(object):

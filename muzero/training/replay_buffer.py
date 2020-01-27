@@ -3,7 +3,7 @@ from itertools import zip_longest
 from typing import List
 
 from config import MuZeroConfig
-from game.game import AbstractGame
+from game.game import Action, AbstractGame
 
 
 class ReplayBuffer(object):
@@ -41,7 +41,10 @@ class ReplayBuffer(object):
             mask_time_batch.append(mask)
             dynamic_mask_time_batch.append(dynamic_mask)
             last_mask = mask
-            actions_time_batch[i] = [action.index for action in actions_batch if action]
+            if isinstance(actions_batch, Action):
+                actions_time_batch[i] = [action.index for action in actions_batch if action]
+            elif isinstance(actions_batch, int):
+                actions_time_batch[i] = [action for action in actions_batch]
 
         batch = image_batch, targets_init_batch, targets_time_batch, actions_time_batch, mask_time_batch, dynamic_mask_time_batch
         return batch

@@ -93,5 +93,11 @@ def loss_value(target_value_batch, value_batch, value_support_size: int):
     rest = sqrt_value - floor_value
     targets[range(batch_size), floor_value.astype(int)] = 1 - rest
     targets[range(batch_size), floor_value.astype(int) + 1] = rest
+    print(type(target_value_batch))
+    print(target_value_batch)
+    print(type(value_batch))
+    print(value_batch.shape)
+    print(type(targets))
+    print(targets.shape)
 
     return tf.nn.softmax_cross_entropy_with_logits(logits=value_batch, labels=targets)

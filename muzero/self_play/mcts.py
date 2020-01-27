@@ -43,8 +43,12 @@ def run_mcts(config: MuZeroConfig, root: Node, action_history: ActionHistory, ne
             history.add_action(action)
             search_path.append(node)
 
+        if len(search_path) < 2:
+            break
+
         # Inside the search tree we use the dynamics function to obtain the next
         # hidden state given an action and the previous hidden state.
+        # print(f'search_path length: {len(search_path)}, hidden_state: {search_path[-1].hidden_state}')
         parent = search_path[-2]
         network_output = network.recurrent_inference(parent.hidden_state, history.last_action())
         expand_node(node, history.to_play(), history.action_space(), network_output)
@@ -115,13 +119,17 @@ def select_action(config: MuZeroConfig, num_moves: int, node: Node, network: Bas
     During training we use a softmax sample for exploration.
     During evaluation we select the most visited child.
     """
+    # print(f'node.children length: {len(node.children)}')
     visit_counts = [child.visit_count for child in node.children.values()]
     actions = [action for action in node.children.keys()]
     action = None
     if mode == 'softmax':
         t = config.visit_softmax_temperature_fn(
             num_moves=num_moves, training_steps=network.training_steps)
-        action = softmax_sample(visit_counts, actions, t)
+        if len(actions) > 0:
+            action = softmax_sample(visit_counts, actions, t)
+        else:
+            action = config.size * config.size
     elif mode == 'max':
         action, _ = max(node.children.items(), key=lambda item: item[1].visit_count)
     return action
